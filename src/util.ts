@@ -47,9 +47,10 @@ export function getModuleId(url: string) {
  * `suffix` is the lowest non-negative integer such that the result is not in
  * `used`.
  */
-export function findAvailableIdentifier(requested: string[], used: Set<string>) {
+export function findAvailableIdentifier(
+    requested: string[], used: Set<string>) {
   if (requested.length < 1) {
-    throw new Error("At least one identifier must be requested.");
+    throw new Error('At least one identifier must be requested.');
   }
 
   let index = 0;

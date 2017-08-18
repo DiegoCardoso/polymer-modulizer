@@ -60,7 +60,6 @@ function getImportDeclarations(
     namedImports: Iterable<JsExport>,
     importReferences: ReadonlySet<ImportReference> = new Set(),
     usedIdentifiers: Set<string> = new Set()): ImportDeclaration[] {
-
   const requestedNames = new Map<JsExport, Set<string>>();
   for (const {target, requestedIdentifiers} of importReferences) {
     let requestedNamesForImport = requestedNames.get(target);
@@ -90,7 +89,8 @@ function getImportDeclarations(
           .map((import_) => {
             const name = import_.name;
             const requestedNamesForImport = requestedNames.get(import_);
-            const alias = assignAlias(import_, Array.from(requestedNamesForImport || []));
+            const alias =
+                assignAlias(import_, Array.from(requestedNamesForImport || []));
 
             if (alias === name) {
               return jsc.importSpecifier(jsc.identifier(name));
