@@ -41,11 +41,12 @@ export function getModuleId(url: string) {
 
 /**
  * Finds an unused identifier name given an array of requested identifiers, in
- * order of preference, and a set of used identifiers. The resulting identifier
- * is the first element of `requested` that is not in `used` or, if all elements
- * of `requested` are in `used`, then `requested[0] + '$' + suffix`, where
- * `suffix` is the lowest non-negative integer such that the result is not in
- * `used`.
+ * order of preference, and a set of used identifiers.
+ *
+ * The result is either:
+ * - the first element of `requested` that is not in `used`, or
+ * - `requested[0] + '$' + suffix`, where `suffix` is the lowest non-negative
+ *   integer such that the result is not in `used`.
  */
 export function findAvailableIdentifier(
     requested: string[], used: Set<string>) {
