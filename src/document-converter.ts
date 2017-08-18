@@ -702,13 +702,14 @@ export class DocumentConverter {
      * Add the given JsExport and referencing NodePath to this.module's
      * `importedReferences` map.
      */
-    const addToImportedReferences = (target: JsExport, path: NodePath, requestedIdentifiers: string[] = []) => {
+    const addToImportedReferences = (ref: ImportReference) => {
+      const {target} = ref;
       let moduleImportedNames = importedReferences.get(target.url);
       if (moduleImportedNames === undefined) {
         moduleImportedNames = new Set<ImportReference>();
         importedReferences.set(target.url, moduleImportedNames);
       }
-      moduleImportedNames.add({target, path, requestedIdentifiers});
+      moduleImportedNames.add(ref);
     };
 
     astTypes.visit(program, {
@@ -726,7 +727,11 @@ export class DocumentConverter {
           return false;
         }
         // Store the imported reference
-        addToImportedReferences(exportOfMember, path, [memberName]);
+        addToImportedReferences({
+          target: exportOfMember,
+          path,
+          requestedIdentifiers: [memberName],
+        });
         return false;
       },
       visitMemberExpression(path: NodePath<MemberExpression>) {
@@ -754,7 +759,11 @@ export class DocumentConverter {
             throw new Error(
                 'Failed to replace a namespace object property set with a setter function call.');
           }
-          addToImportedReferences(exportOfMember, callPath.get('callee')!, generateAliases(memberPath));
+          addToImportedReferences({
+            target: exportOfMember,
+            path: callPath.get('callee')!,
+            requestedIdentifiers: generateAliases(memberPath),
+          });
           return false;
         }
         const exportOfMember =
@@ -764,7 +773,11 @@ export class DocumentConverter {
           return;
         }
         // Store the imported reference
-        addToImportedReferences(exportOfMember, path, generateAliases(memberPath));
+        addToImportedReferences({
+          target: exportOfMember,
+          path,
+          requestedIdentifiers: generateAliases(memberPath),
+        });
         return false;
       }
     });
