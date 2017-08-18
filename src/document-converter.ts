@@ -64,7 +64,7 @@ function getImportDeclarations(
   // specifier names for references to that import.
   const requestedNames = new Map<JsExport, Set<string>>();
   for (const {target, requestedIdentifiers} of importReferences) {
-    let requestedNamesForImport = requestedNames.get(target);
+    const requestedNamesForImport = requestedNames.get(target);
     if (requestedNamesForImport === undefined) {
       requestedNames.set(target, new Set(requestedIdentifiers));
       continue;
