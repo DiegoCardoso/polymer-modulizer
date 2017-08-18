@@ -32,7 +32,7 @@ import {removeWrappingIIFEs} from './passes/remove-wrapping-iife';
 import {rewriteNamespacesAsExports} from './passes/rewrite-namespace-exports';
 import {rewriteToplevelThis} from './passes/rewrite-toplevel-this';
 import {ConvertedDocumentUrl, convertHtmlDocumentUrl, convertJsDocumentUrl, getDocumentUrl, getRelativeUrl, OriginalDocumentUrl} from './url-converter';
-import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, joinCamelCase, nodeToTemplateLiteral, serializeNode} from './util';
+import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, joinCamelCase, invertMultimap, nodeToTemplateLiteral, serializeNode} from './util';
 
 /**
  * Pairs a subtree of an AST (`path` as a `NodePath`) to be replaced with a
@@ -72,6 +72,23 @@ function getImportDeclarations(
 
     for (const name of requestedIdentifiers) {
       requestedNamesForImport.add(name);
+    }
+  }
+
+  // Remove any duplicate names from *all* sets.
+  for (const [name, imports] of invertMultimap(requestedNames)) {
+    if (imports.size <= 1) {
+      continue;
+    }
+
+    for (const import_ of imports) {
+      const requestedNamesForImport = requestedNames.get(import_);
+      // Remove this name if there is at least one other. If there isn't, then
+      // these identifiers will be aliased by `findAvailableIdentifier` using
+      // suffixes to prevent collision.
+      if (requestedNamesForImport && requestedNamesForImport.size > 1) {
+        requestedNamesForImport.delete(name);
+      }
     }
   }
 
