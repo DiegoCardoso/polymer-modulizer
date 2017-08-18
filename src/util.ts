@@ -245,3 +245,9 @@ export function getNamespaces(analysis: Analysis) {
         return name;
       });
 }
+
+export function joinCamelCase(arr: string[]) {
+  return arr
+      .map((str, i) => i === 0 ? str : str[0].toUpperCase() + str.slice(1))
+      .join('');
+}

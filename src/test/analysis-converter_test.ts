@@ -926,10 +926,10 @@ class MyElement extends Foo.Element {}
       assertSources(await convert(), {
         './test.js': `
 import * as dep from './dep.js';
-import { Element as Foo_Element } from './dep.js';
+import { Element as FooElement } from './dep.js';
 const Foo = dep;
 const Bar = Foo.Element;
-const Baz = Foo_Element;
+const Baz = FooElement;
 `
       });
     });
@@ -1204,8 +1204,8 @@ export { qux as zug };
       assertSources(
           await convert({namespaces: [/* No explicit namespaces! */]}), {
             './test.js': `
-import { Element as Polymer_Element } from './polymer.js';
-class Element extends Polymer_Element {}
+import { Element as PolymerElement } from './polymer.js';
+class Element extends PolymerElement {}
 `,
 
             './polymer.js': `
@@ -1235,8 +1235,8 @@ export const Element = class Element {};
       assertSources(
           await convert({namespaces: [/* No explicit namespaces! */]}), {
             './test.js': `
-import { Element as SubSpace_Element } from './ns.js';
-class Element extends SubSpace_Element {}
+import { Element as SubSpaceElement } from './ns.js';
+class Element extends SubSpaceElement {}
 `,
 
             './ns.js': `
@@ -1855,15 +1855,15 @@ document.head.appendChild($_documentContainer);
               var foo$1 = "foo$1";
               var foo$2 = "foo$2";
               var foo$3 = "foo$3";
-              var NS2_foo = "NS2_foo";
-              var NS3_foo = "NS3_foo";
+              var NS2Foo = "NS2Foo";
+              var NS3Foo = "NS3Foo";
               // Log local variables.
               console.log(foo);
               console.log(foo$1);
               console.log(foo$2);
               console.log(foo$3);
-              console.log(NS2_foo);
-              console.log(NS3_foo);
+              console.log(NS2Foo);
+              console.log(NS3Foo);
               // Log imports.
               console.log(NS1.foo);
               console.log(NS2.foo);
@@ -1874,28 +1874,28 @@ document.head.appendChild($_documentContainer);
       });
       assertSources(await convert({namespaces: ['NS1', 'NS2', 'NS3', 'NS4']}), {
         './test.js': `
-import { foo as NS1_foo } from './NS1-foo.js';
+import { foo as NS1Foo } from './NS1-foo.js';
 import { foo as foo$0 } from './NS2-foo.js';
 import { foo as foo$4 } from './NS3-foo.js';
-import { foo as NS4_foo } from './NS4-foo.js';
+import { foo as NS4Foo } from './NS4-foo.js';
 var foo = "foo";
 var foo$1 = "foo$1";
 var foo$2 = "foo$2";
 var foo$3 = "foo$3";
-var NS2_foo = "NS2_foo";
-var NS3_foo = "NS3_foo";
+var NS2Foo = "NS2Foo";
+var NS3Foo = "NS3Foo";
 // Log local variables.
 console.log(foo);
 console.log(foo$1);
 console.log(foo$2);
 console.log(foo$3);
-console.log(NS2_foo);
-console.log(NS3_foo);
+console.log(NS2Foo);
+console.log(NS3Foo);
 // Log imports.
-console.log(NS1_foo);
+console.log(NS1Foo);
 console.log(foo$0);
 console.log(foo$4);
-console.log(NS4_foo);
+console.log(NS4Foo);
 `
       });
     });

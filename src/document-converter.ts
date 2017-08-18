@@ -32,7 +32,7 @@ import {removeWrappingIIFEs} from './passes/remove-wrapping-iife';
 import {rewriteNamespacesAsExports} from './passes/rewrite-namespace-exports';
 import {rewriteToplevelThis} from './passes/rewrite-toplevel-this';
 import {ConvertedDocumentUrl, convertHtmlDocumentUrl, convertJsDocumentUrl, getDocumentUrl, getRelativeUrl, OriginalDocumentUrl} from './url-converter';
-import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, nodeToTemplateLiteral, serializeNode} from './util';
+import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, joinCamelCase, nodeToTemplateLiteral, serializeNode} from './util';
 
 /**
  * Pairs a subtree of an AST (`path` as a `NodePath`) to be replaced with a
@@ -700,12 +700,12 @@ export class DocumentConverter {
      * For example:
      *    ['Polymer', 'Async', 'microTask']
      * becomes:
-     *    ['microTask', 'Async_microTask', 'Polymer_Async_microTask']
+     *    ['microTask', 'AsyncMicroTask', 'PolymerAsyncMicroTask']
      */
     function generateAliases(memberPath: string[]): string[] {
       const requestedIdentifiers = [];
       for (let i = 0; i < memberPath.length; i++) {
-        requestedIdentifiers.unshift(memberPath.slice(i).join('_'));
+        requestedIdentifiers.unshift(joinCamelCase(memberPath.slice(i)));
       }
       return requestedIdentifiers;
     }
