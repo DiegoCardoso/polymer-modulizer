@@ -60,6 +60,8 @@ function getImportDeclarations(
     namedImports: Iterable<JsExport>,
     importReferences: ReadonlySet<ImportReference> = new Set(),
     usedIdentifiers: Set<string> = new Set()): ImportDeclaration[] {
+  // A map from imports (as `JsExport`s) to an *ordered* set of preferred
+  // specifier names for references to that import.
   const requestedNames = new Map<JsExport, Set<string>>();
   for (const {target, requestedIdentifiers} of importReferences) {
     let requestedNamesForImport = requestedNames.get(target);
@@ -690,6 +692,16 @@ export class DocumentConverter {
     const importedReferences =
         new Map<ConvertedDocumentUrl, Set<ImportReference>>();
 
+    /**
+     * Creates an array of preferred aliases for an import reference from the
+     * array of identifiers in the chain of member expressions of that
+     * reference.
+     *
+     * For example:
+     *    ['Polymer', 'Async', 'microTask']
+     * becomes:
+     *    ['microTask', 'Async_microTask', 'Polymer_Async_microTask']
+     */
     function generateAliases(memberPath: string[]): string[] {
       const requestedIdentifiers = [];
       for (let i = 0; i < memberPath.length; i++) {
