@@ -763,10 +763,9 @@ export class DocumentConverter {
             this.traverse(path);
             return;
           }
-          // `setterName` is *not* a valid identifier but will be replaced with
-          // a valid identifer during aliasing in `getImportDeclarations`.
           const [callPath] = assignmentPath.replace(jsc.callExpression(
-              jsc.identifier(setterName), [assignmentPath.node.right]));
+              jsc.identifier('IMPORT_REFERENCE_REPLACEMENT_FAILED'),
+              [assignmentPath.node.right]));
           if (!callPath) {
             throw new Error(
                 'Failed to replace a namespace object property set with a setter function call.');
