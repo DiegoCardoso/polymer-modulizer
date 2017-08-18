@@ -704,8 +704,8 @@ export class DocumentConverter {
      */
     function generateAliases(memberPath: string[]): string[] {
       const requestedIdentifiers = [];
-      for (let i = 0; i < memberPath.length; i++) {
-        requestedIdentifiers.unshift(joinCamelCase(memberPath.slice(i)));
+      for (let i = memberPath.length - 1; i >= 0; i--) {
+        requestedIdentifiers.push(joinCamelCase(memberPath.slice(i)));
       }
       return requestedIdentifiers;
     }
