@@ -42,6 +42,7 @@ import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getN
 type ImportReference = {
   path: NodePath,
   target: JsExport,
+  requestedIdentifiers: string[],
 };
 
 /** Represents a change to a portion of a file. */
@@ -59,11 +60,25 @@ function getImportDeclarations(
     namedImports: Iterable<JsExport>,
     importReferences: ReadonlySet<ImportReference> = new Set(),
     usedIdentifiers: Set<string> = new Set()): ImportDeclaration[] {
+
+  const requestedNames = new Map<JsExport, Set<string>>();
+  for (const {target, requestedIdentifiers} of importReferences) {
+    let requestedNamesForImport = requestedNames.get(target);
+    if (requestedNamesForImport === undefined) {
+      requestedNames.set(target, new Set(requestedIdentifiers));
+      continue;
+    }
+
+    for (const name of requestedIdentifiers) {
+      requestedNamesForImport.add(name);
+    }
+  }
+
   // A map from imports (as `JsExport`s) to their assigned specifier names.
   const assignedNames = new Map<JsExport, string>();
   // Find an unused identifier and mark it as used.
-  function assignAlias(import_: JsExport, requestedAlias: string) {
-    const alias = findAvailableIdentifier(requestedAlias, usedIdentifiers);
+  function assignAlias(import_: JsExport, requestedAliases: string[]) {
+    const alias = findAvailableIdentifier(requestedAliases, usedIdentifiers);
     usedIdentifiers.add(alias);
     assignedNames.set(import_, alias);
     return alias;
@@ -74,7 +89,8 @@ function getImportDeclarations(
       namedImportsArray.filter((import_) => import_.name !== '*')
           .map((import_) => {
             const name = import_.name;
-            const alias = assignAlias(import_, import_.name);
+            const requestedNamesForImport = requestedNames.get(import_);
+            const alias = assignAlias(import_, Array.from(requestedNamesForImport || []));
 
             if (alias === name) {
               return jsc.importSpecifier(jsc.identifier(name));
@@ -96,7 +112,7 @@ function getImportDeclarations(
 
   const namespaceImport = namespaceImports[0];
   if (namespaceImport) {
-    const alias = assignAlias(namespaceImport, getModuleId(specifierUrl));
+    const alias = assignAlias(namespaceImport, [getModuleId(specifierUrl)]);
 
     importDeclarations.push(jsc.importDeclaration(
         [jsc.importNamespaceSpecifier(jsc.identifier(alias))],
@@ -664,11 +680,9 @@ export class DocumentConverter {
   }
 
   /**
-   * Rewrite namespaced references to the imported name. e.g. changes
-   * Polymer.Element -> $Element
+   * Finds namespaced references to the imported name.
    *
-   * Returns a map of from url to identifier of the references we should
-   * import.
+   * Returns a map of from url to the references we should import.
    */
   private collectNamespacedReferences(program: Program):
       Map<ConvertedDocumentUrl, Set<ImportReference>> {
@@ -676,17 +690,25 @@ export class DocumentConverter {
     const importedReferences =
         new Map<ConvertedDocumentUrl, Set<ImportReference>>();
 
+    function generateAliases(memberPath: string[]): string[] {
+      const requestedIdentifiers = [];
+      for (let i = 0; i < memberPath.length; i++) {
+        requestedIdentifiers.unshift(memberPath.slice(i).join('_'));
+      }
+      return requestedIdentifiers;
+    }
+
     /**
      * Add the given JsExport and referencing NodePath to this.module's
      * `importedReferences` map.
      */
-    const addToImportedReferences = (target: JsExport, path: NodePath) => {
+    const addToImportedReferences = (target: JsExport, path: NodePath, requestedIdentifiers: string[] = []) => {
       let moduleImportedNames = importedReferences.get(target.url);
       if (moduleImportedNames === undefined) {
         moduleImportedNames = new Set<ImportReference>();
         importedReferences.set(target.url, moduleImportedNames);
       }
-      moduleImportedNames.add({target, path});
+      moduleImportedNames.add({target, path, requestedIdentifiers});
     };
 
     astTypes.visit(program, {
@@ -704,7 +726,7 @@ export class DocumentConverter {
           return false;
         }
         // Store the imported reference
-        addToImportedReferences(exportOfMember, path);
+        addToImportedReferences(exportOfMember, path, [memberName]);
         return false;
       },
       visitMemberExpression(path: NodePath<MemberExpression>) {
@@ -724,13 +746,15 @@ export class DocumentConverter {
             this.traverse(path);
             return;
           }
+          // `setterName` is *not* a valid identifier but will be replaced with
+          // a valid identifer during aliasing in `getImportDeclarations`.
           const [callPath] = assignmentPath.replace(jsc.callExpression(
               jsc.identifier(setterName), [assignmentPath.node.right]));
           if (!callPath) {
             throw new Error(
                 'Failed to replace a namespace object property set with a setter function call.');
           }
-          addToImportedReferences(exportOfMember, callPath.get('callee')!);
+          addToImportedReferences(exportOfMember, callPath.get('callee')!, generateAliases(memberPath));
           return false;
         }
         const exportOfMember =
@@ -740,7 +764,7 @@ export class DocumentConverter {
           return;
         }
         // Store the imported reference
-        addToImportedReferences(exportOfMember, path);
+        addToImportedReferences(exportOfMember, path, generateAliases(memberPath));
         return false;
       }
     });

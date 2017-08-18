@@ -40,14 +40,29 @@ export function getModuleId(url: string) {
 }
 
 /**
- * Finds an unused identifier name given a requested name and set of used names.
+ * Finds an unused identifier name given an array of requested identifiers, in
+ * order of preference, and a set of used identifiers. The resulting identifier
+ * is the first element of `requested` that is not in `used` or, if all elements
+ * of `requested` are in `used`, then `requested[0] + '$' + suffix`, where
+ * `suffix` is the lowest non-negative integer such that the result is not in
+ * `used`.
  */
-export function findAvailableIdentifier(requested: string, used: Set<string>) {
-  let suffix = 0;
-  let alias = requested;
-  while (used.has(alias)) {
-    alias = requested + '$' + (suffix++);
+export function findAvailableIdentifier(requested: string[], used: Set<string>) {
+  if (requested.length < 1) {
+    throw new Error("At least one identifier must be requested.");
   }
+
+  let index = 0;
+  let alias = requested[index++];
+  while (used.has(alias) && index < requested.length) {
+    alias = requested[index++];
+  }
+
+  let suffix = 0;
+  while (used.has(alias)) {
+    alias = requested[0] + '$' + (suffix++);
+  }
+
   return alias;
 }
 
