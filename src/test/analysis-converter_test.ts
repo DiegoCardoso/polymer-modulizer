@@ -1900,6 +1900,113 @@ console.log(NS4Foo);
       });
     });
 
+    testName =
+        'Multiple imports with conflicting names resolve to namespace-prefixed aliases.';
+    test(testName, async () => {
+      debugger;
+      setSources({
+        'NS1-foo.html': `
+            <script>
+              NS1.foo = "NS1.foo";
+            </script>
+          `,
+        'NS2-foo.html': `
+            <script>
+              NS2.foo = "NS2.foo";
+            </script>
+          `,
+        'NS3-foo.html': `
+            <script>
+              NS3.foo = "NS3.foo";
+            </script>
+          `,
+        'test.html': `
+            <link rel="import" href="./NS1-foo.html">
+            <link rel="import" href="./NS2-foo.html">
+            <link rel="import" href="./NS3-foo.html">
+            <script>
+              console.log(NS1.foo);
+              console.log(NS2.foo);
+              console.log(NS3.foo);
+            </script>
+          `,
+      });
+      assertSources(await convert({namespaces: ['NS1', 'NS2', 'NS3']}), {
+        './test.js': `
+import { foo as NS1Foo } from './NS1-foo.js';
+import { foo as NS2Foo } from './NS2-foo.js';
+import { foo as NS3Foo } from './NS3-foo.js';
+console.log(NS1Foo);
+console.log(NS2Foo);
+console.log(NS3Foo);
+`
+      });
+    });
+
+    testName =
+        'Imports with names conflicting with local variables resolve to namespace-prefixed aliases.';
+    test(testName, async () => {
+      setSources({
+        'NS1-foo.html': `
+            <script>
+              NS1.foo = "NS1.foo";
+            </script>
+          `,
+        'test.html': `
+            <link rel="import" href="./NS1-foo.html">
+            <script>
+              const foo = "foo";
+              console.log(foo);
+              console.log(NS1.foo);
+            </script>
+          `,
+      });
+      assertSources(await convert({namespaces: ['NS1']}), {
+        './test.js': `
+import { foo as NS1Foo } from './NS1-foo.js';
+const foo = "foo";
+console.log(foo);
+console.log(NS1Foo);
+`
+      });
+    });
+
+    testName =
+        'Imports with names conflicting with local variables both namespaced and non-namespaced resolve to namespace-prefixed and number-suffixed aliases.';
+    test(testName, async () => {
+      setSources({
+        'NS1-foo.html': `
+            <script>
+              NS1.foo = "NS1.foo";
+            </script>
+          `,
+        'test.html': `
+            <link rel="import" href="./NS1-foo.html">
+            <script>
+              const foo = "foo";
+              const NS1Foo = "NS1Foo";
+              const NS1Foo$0 = "NS1Foo$0";
+              console.log(foo);
+              console.log(NS1Foo);
+              console.log(NS1Foo$0);
+              console.log(NS1.foo);
+            </script>
+          `,
+      });
+      assertSources(await convert({namespaces: ['NS1']}), {
+        './test.js': `
+import { foo as NS1Foo$1 } from './NS1-foo.js';
+const foo = "foo";
+const NS1Foo = "NS1Foo";
+const NS1Foo$0 = "NS1Foo$0";
+console.log(foo);
+console.log(NS1Foo);
+console.log(NS1Foo$0);
+console.log(NS1Foo$1);
+`
+      });
+    });
+
     test('styles are not converted to imperative code by default', async () => {
       setSources({
         'index.html': `
