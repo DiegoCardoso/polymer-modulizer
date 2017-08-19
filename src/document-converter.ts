@@ -32,7 +32,7 @@ import {removeWrappingIIFEs} from './passes/remove-wrapping-iife';
 import {rewriteNamespacesAsExports} from './passes/rewrite-namespace-exports';
 import {rewriteToplevelThis} from './passes/rewrite-toplevel-this';
 import {ConvertedDocumentUrl, convertHtmlDocumentUrl, convertJsDocumentUrl, getDocumentUrl, getRelativeUrl, OriginalDocumentUrl} from './url-converter';
-import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, joinCamelCase, invertMultimap, nodeToTemplateLiteral, serializeNode} from './util';
+import {findAvailableIdentifier, getMemberName, getMemberPath, getModuleId, getNodeGivenAnalyzerAstNode, invertMultimap, joinCamelCase, nodeToTemplateLiteral, serializeNode} from './util';
 
 /**
  * Pairs a subtree of an AST (`path` as a `NodePath`) to be replaced with a
