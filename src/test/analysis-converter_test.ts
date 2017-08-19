@@ -1875,8 +1875,8 @@ document.head.appendChild($_documentContainer);
       assertSources(await convert({namespaces: ['NS1', 'NS2', 'NS3', 'NS4']}), {
         './test.js': `
 import { foo as NS1Foo } from './NS1-foo.js';
-import { foo as foo$0 } from './NS2-foo.js';
-import { foo as foo$4 } from './NS3-foo.js';
+import { foo as NS2Foo$0 } from './NS2-foo.js';
+import { foo as NS3Foo$0 } from './NS3-foo.js';
 import { foo as NS4Foo } from './NS4-foo.js';
 var foo = "foo";
 var foo$1 = "foo$1";
@@ -1893,8 +1893,8 @@ console.log(NS2Foo);
 console.log(NS3Foo);
 // Log imports.
 console.log(NS1Foo);
-console.log(foo$0);
-console.log(foo$4);
+console.log(NS2Foo$0);
+console.log(NS3Foo$0);
 console.log(NS4Foo);
 `
       });

@@ -75,17 +75,16 @@ function getImportDeclarations(
     }
   }
 
-  // Remove any duplicate names from *all* sets.
+  // Prevent suffix aliasing where possible: remove name requests if the name is
+  // requested by multiple imports or is contained in `usedIdentifiers`, leaving
+  // at least one requested name for each import.
   for (const [name, imports] of invertMultimap(requestedNames)) {
-    if (imports.size <= 1) {
+    if (imports.size <= 1 && !usedIdentifiers.has(name)) {
       continue;
     }
 
     for (const import_ of imports) {
       const requestedNamesForImport = requestedNames.get(import_);
-      // Remove this name if there is at least one other. If there isn't, then
-      // these identifiers will be aliased by `findAvailableIdentifier` using
-      // suffixes to prevent collision.
       if (requestedNamesForImport && requestedNamesForImport.size > 1) {
         requestedNamesForImport.delete(name);
       }
