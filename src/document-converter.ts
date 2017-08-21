@@ -59,42 +59,14 @@ function getImportDeclarations(
     specifierUrl: string,
     namedImports: Iterable<JsExport>,
     importReferences: ReadonlySet<ImportReference> = new Set(),
-    usedIdentifiers: Set<string> = new Set()): ImportDeclaration[] {
-  // A map from imports (as `JsExport`s) to an *ordered* set of preferred
-  // specifier names for references to that import.
-  const requestedNames = new Map<JsExport, Set<string>>();
-  for (const {target, requestedIdentifiers} of importReferences) {
-    const requestedNamesForImport = requestedNames.get(target);
-    if (requestedNamesForImport === undefined) {
-      requestedNames.set(target, new Set(requestedIdentifiers));
-      continue;
-    }
-
-    for (const name of requestedIdentifiers) {
-      requestedNamesForImport.add(name);
-    }
-  }
-
-  // Prevent suffix aliasing where possible: remove name requests if the name is
-  // requested by multiple imports or is contained in `usedIdentifiers`, leaving
-  // at least one requested name for each import.
-  for (const [name, imports] of invertMultimap(requestedNames)) {
-    if (imports.size <= 1 && !usedIdentifiers.has(name)) {
-      continue;
-    }
-
-    for (const import_ of imports) {
-      const requestedNamesForImport = requestedNames.get(import_);
-      if (requestedNamesForImport && requestedNamesForImport.size > 1) {
-        requestedNamesForImport.delete(name);
-      }
-    }
-  }
-
+    usedIdentifiers: Set<string> = new Set(),
+    aliasRequests: ReadonlyMap<JsExport, ReadonlyArray<string>>):
+    ImportDeclaration[] {
   // A map from imports (as `JsExport`s) to their assigned specifier names.
   const assignedNames = new Map<JsExport, string>();
   // Find an unused identifier and mark it as used.
-  function assignAlias(import_: JsExport, requestedAliases: string[]) {
+  function assignAlias(
+      import_: JsExport, requestedAliases: ReadonlyArray<string>) {
     const alias = findAvailableIdentifier(requestedAliases, usedIdentifiers);
     usedIdentifiers.add(alias);
     assignedNames.set(import_, alias);
@@ -106,9 +78,8 @@ function getImportDeclarations(
       namedImportsArray.filter((import_) => import_.name !== '*')
           .map((import_) => {
             const name = import_.name;
-            const requestedNamesForImport = requestedNames.get(import_);
             const alias =
-                assignAlias(import_, Array.from(requestedNamesForImport || []));
+                assignAlias(import_, aliasRequests.get(import_) || []);
 
             if (alias === name) {
               return jsc.importSpecifier(jsc.identifier(name));
@@ -1071,6 +1042,15 @@ export class DocumentConverter {
     }
     const usedIdentifiers = collectIdentifierNames(program, ignoredIdentifiers);
 
+    const allImportReferences = new Set();
+    for (const refs of importedReferences.values()) {
+      for (const ref of refs) {
+        allImportReferences.add(ref);
+      }
+    }
+    const aliasRequests: Map<JsExport, string[]> =
+        generateAliasRequests(allImportReferences, usedIdentifiers);
+
     const jsExplicitImports = new Set<string>();
     // Rewrite HTML Imports to JS imports
     const jsImportDeclarations = [];
@@ -1085,7 +1065,11 @@ export class DocumentConverter {
       const jsFormattedImportUrl =
           this.formatImportUrl(importedJsDocumentUrl, htmlImport.url);
       jsImportDeclarations.push(...getImportDeclarations(
-          jsFormattedImportUrl, namedExports, references, usedIdentifiers));
+          jsFormattedImportUrl,
+          namedExports,
+          references,
+          usedIdentifiers,
+          aliasRequests));
 
       jsExplicitImports.add(importedJsDocumentUrl);
     }
@@ -1101,7 +1085,11 @@ export class DocumentConverter {
 
       const jsFormattedImportUrl = this.formatImportUrl(jsImplicitImportUrl);
       jsImportDeclarations.push(...getImportDeclarations(
-          jsFormattedImportUrl, namedExports, references, usedIdentifiers));
+          jsFormattedImportUrl,
+          namedExports,
+          references,
+          usedIdentifiers,
+          aliasRequests));
     }
     // Prepend JS imports into the program body
     program.body.splice(0, 0, ...jsImportDeclarations);
@@ -1269,4 +1257,42 @@ function domModuleCanBeInlined(domModule: parse5.ASTNode) {
   }
 
   return true;
+}
+
+function generateAliasRequests(
+    importReferences: ReadonlySet<ImportReference>,
+    usedIdentifiers: ReadonlySet<string>): Map<JsExport, string[]> {
+  // A map from imports (as `JsExport`s) to an *ordered* set of preferred
+  // specifier names for references to that import.
+  const aliasRequests = new Map<JsExport, Array<string>>();
+  for (const {target, requestedIdentifiers} of importReferences) {
+    let aliasRequestsForImport = aliasRequests.get(target);
+    if (aliasRequestsForImport === undefined) {
+      aliasRequestsForImport = [];
+      aliasRequests.set(target, aliasRequestsForImport);
+    }
+
+    for (const name of requestedIdentifiers) {
+      aliasRequestsForImport.push(name);
+    }
+  }
+
+  for (const [name, imports] of invertMultimap(aliasRequests)) {
+    if (imports.size <= 1 && !usedIdentifiers.has(name)) {
+      continue;
+    }
+
+    for (const import_ of imports) {
+      const aliasRequestsForImport = aliasRequests.get(import_);
+      if (aliasRequestsForImport && aliasRequestsForImport.length > 1) {
+        let index = aliasRequestsForImport.indexOf(name);
+        while (index !== -1) {
+          aliasRequestsForImport.splice(index, 1);
+          index = aliasRequestsForImport.indexOf(name);
+        }
+      }
+    }
+  }
+
+  return aliasRequests;
 }

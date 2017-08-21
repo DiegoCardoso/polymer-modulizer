@@ -49,7 +49,7 @@ export function getModuleId(url: string) {
  *   integer such that the result is not in `used`.
  */
 export function findAvailableIdentifier(
-    requested: string[], used: Set<string>) {
+    requested: ReadonlyArray<string>, used: ReadonlySet<string>) {
   if (requested.length < 1) {
     throw new Error('At least one identifier must be requested.');
   }
@@ -252,7 +252,7 @@ export function joinCamelCase(arr: string[]) {
       .join('');
 }
 
-export function invertMultimap<K, V>(multimap: ReadonlyMap<K, ReadonlySet<V>>):
+export function invertMultimap<K, V>(multimap: ReadonlyMap<K, Iterable<V>>):
     Map<V, Set<K>> {
   const inverse = new Map<V, Set<K>>();
   for (const [key, values] of multimap) {
